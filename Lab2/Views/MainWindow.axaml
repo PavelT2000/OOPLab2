@@ -1,0 +1,42 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="using:Lab2.Models"
+        xmlns:views="using:Lab2.Views"
+        x:Class="Lab2.Views.MainWindow"
+        x:DataType="views:MainWindow"
+        Title="Space Ship Manager" Width="600" Height="500">
+
+    <Grid ColumnDefinitions="250, *">
+        <StackPanel Grid.Column="0" Margin="10" Spacing="10">
+            <TextBlock Text="Тип нового корабля:" FontWeight="Bold"/>
+            <ComboBox x:Name="TypeSelector" HorizontalAlignment="Stretch" SelectedIndex="0">
+                <ComboBoxItem Content="Cargo"/>
+                <ComboBoxItem Content="Destroyer"/>
+                <ComboBoxItem Content="Scout Ship"/>
+            </ComboBox>
+            
+            <Button Content="Создать корабль" Click="CreateShip_Click" 
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Background="LightGreen"/>
+
+            <Separator Height="10"/>
+            
+            <TextBlock Text="Список флота:" FontWeight="Bold"/>
+            <ListBox x:Name="ShipsList" Height="250" SelectionChanged="ShipsList_SelectionChanged" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Margin="10" Spacing="10">
+            <TextBlock Text="Инспектор объекта:" FontWeight="Bold"/>
+            <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="5" Padding="10">
+                <ScrollViewer Height="300">
+                    <StackPanel x:Name="InspectorPanel" Spacing="10" />
+                </ScrollViewer>
+            </Border>
+            
+            <Button Content="Выполнить миссию" 
+                    Click="Execute_Click"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    IsEnabled="{Binding #ShipsList.SelectedItem, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+        </StackPanel>
+    </Grid>
+</Window>
