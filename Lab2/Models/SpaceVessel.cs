@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +12,9 @@ namespace Lab2.Models
         private double _fuel;
         
         public string ModelName { get; protected set; }
+
+        /// <summary>Короткий идентификатор для отображения и восстановления при десериализации.</summary>
+        public string Uid => _uid;
 
         public double Fuel
         {
@@ -38,6 +41,16 @@ namespace Lab2.Models
             return $"[{_uid}] Ship {ModelName}: Fuel {Fuel}%";
         }
         public abstract void ExecuteMission();
+
+        /// <summary>Восстанавливает идентичность после загрузки из файла (тот же класс, что и при сохранении).</summary>
+        public void ApplyDeserializedIdentity(string uid, string modelName, double fuel)
+        {
+            if (string.IsNullOrWhiteSpace(uid))
+                throw new ArgumentException("Uid не может быть пустым.", nameof(uid));
+            _uid = uid.Length <= 5 ? uid : uid[..5];
+            ModelName = modelName;
+            Fuel = fuel;
+        }
 
     }
 }
