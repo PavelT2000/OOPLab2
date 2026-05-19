@@ -4,16 +4,12 @@
         xmlns:views="using:Lab2.Views"
         x:Class="Lab2.Views.MainWindow"
         x:DataType="views:MainWindow"
-        Title="Space Ship Manager" Width="720" Height="560">
+        Title="Space Ship Manager" Width="760" Height="620">
 
-    <Grid ColumnDefinitions="280,*" RowDefinitions="*">
+    <Grid ColumnDefinitions="300,*" RowDefinitions="*">
         <StackPanel Grid.Column="0" Margin="10" Spacing="10">
             <TextBlock Text="Тип нового корабля:" FontWeight="Bold"/>
-            <ComboBox x:Name="TypeSelector" HorizontalAlignment="Stretch" SelectedIndex="0">
-                <ComboBoxItem Content="Cargo"/>
-                <ComboBoxItem Content="Destroyer"/>
-                <ComboBoxItem Content="Scout Ship"/>
-            </ComboBox>
+            <ComboBox x:Name="TypeSelector" HorizontalAlignment="Stretch"/>
 
             <Button Content="Создать корабль" Click="CreateShip_Click"
                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -21,8 +17,19 @@
 
             <Separator Height="8"/>
 
+            <TextBlock Text="Модули расширения:" FontWeight="Bold"/>
+            <TextBlock x:Name="ModulesStatusText"
+                       TextWrapping="Wrap"
+                       FontSize="11"
+                       Foreground="Gray"/>
+            <Button Content="Обновить модули из папки Plugins"
+                    Click="ReloadModules_Click"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+
+            <Separator Height="8"/>
+
             <TextBlock Text="Список флота:" FontWeight="Bold"/>
-            <ListBox x:Name="ShipsList" MinHeight="200" MaxHeight="280" SelectionChanged="ShipsList_SelectionChanged"/>
+            <ListBox x:Name="ShipsList" MinHeight="180" MaxHeight="240" SelectionChanged="ShipsList_SelectionChanged"/>
 
             <Button Content="Удалить выбранный"
                     Click="RemoveShip_Click"
@@ -48,10 +55,13 @@
         <StackPanel Grid.Column="1" Margin="10" Spacing="10">
             <TextBlock Text="Инспектор объекта:" FontWeight="Bold"/>
             <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="5" Padding="10">
-                <ScrollViewer Height="360">
+                <ScrollViewer Height="320">
                     <StackPanel x:Name="InspectorPanel" Spacing="10"/>
                 </ScrollViewer>
             </Border>
+
+            <TextBlock Text="Действия модуля:" FontWeight="Bold"/>
+            <StackPanel x:Name="ModuleActionsPanel" Spacing="6"/>
 
             <Button Content="Выполнить миссию"
                     Click="Execute_Click"

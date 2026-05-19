@@ -1,9 +1,9 @@
 using System;
+using System.Collections.Generic;
 using MessagePack;
 
 namespace Lab2.Models;
 
-/// <summary>Снимок состояния корабля для сериализации (JSON, бинарный, текстовый формат).</summary>
 [MessagePackObject]
 public sealed class VesselMemento
 {
@@ -18,6 +18,8 @@ public sealed class VesselMemento
     [Key(4)] public int? FirePower { get; set; }
 
     [Key(5)] public int? Capacity { get; set; }
+
+    [Key(6)] public Dictionary<string, string>? ExtendedData { get; set; }
 
     public static VesselMemento FromVessel(SpaceVessel vessel)
     {
@@ -39,27 +41,27 @@ public sealed class VesselMemento
                 break;
         }
 
+        Plugins.VesselPluginRegistry.Instance.CaptureExtra(vessel, m);
         return m;
     }
 
-    public SpaceVessel ToVessel()
+    public SpaceVessel ToVessel() => Plugins.VesselPluginRegistry.Instance.Restore(this);
+
+    public void SetExtended(string key, string value)
     {
-        SpaceVessel vessel = TypeName switch
+        ExtendedData ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        ExtendedData[key] = value;
+    }
+
+    public bool TryGetExtended(string key, out string value)
+    {
+        if (ExtendedData != null && ExtendedData.TryGetValue(key, out var stored))
         {
-            nameof(CargoFreighter) => new CargoFreighter(ModelName),
-            nameof(Destroyer) => new Destroyer(ModelName),
-            nameof(ScoutFighter) => new ScoutFighter(ModelName),
-            _ => throw new FormatException($"Неизвестный тип корабля: '{TypeName}'.")
-        };
+            value = stored;
+            return true;
+        }
 
-        vessel.ApplyDeserializedIdentity(Uid, ModelName, Fuel);
-
-        if (vessel is CombatShip combat && FirePower.HasValue)
-            combat.FirePower = FirePower.Value;
-
-        if (vessel is TransportShip transport && Capacity.HasValue)
-            transport.Capacity = Capacity.Value;
-
-        return vessel;
+        value = "";
+        return false;
     }
 }

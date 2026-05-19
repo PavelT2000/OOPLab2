@@ -7,14 +7,13 @@ using Newtonsoft.Json;
 
 namespace Lab2.Serialization;
 
-/// <summary>Сериализация списка снимков через Newtonsoft.Json (NuGet).</summary>
 public sealed class JsonFleetSerializer : IFleetSerializer
 {
     private static readonly JsonSerializer Serializer = new()
     {
         Formatting = Formatting.Indented,
         Culture = System.Globalization.CultureInfo.InvariantCulture
-    };
+    };  
 
     public void Serialize(Stream output, IReadOnlyList<SpaceVessel> fleet)
     {
