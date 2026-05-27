@@ -66,7 +66,7 @@ public partial class MainWindow : Window
         {
             0 => new List<FilePickerFileType>
             {
-                new("????????? (*.txt)") { Patterns = new[] { "*.txt" } },
+                new("Текстовый (*.txt)") { Patterns = new[] { "*.txt" } },
                 FilePickerFileTypes.All
             },
             1 => new List<FilePickerFileType>
@@ -76,7 +76,7 @@ public partial class MainWindow : Window
             },
             2 => new List<FilePickerFileType>
             {
-                new("???????? (*.bin)") { Patterns = new[] { "*.bin" } },
+                new("Бинарный (*.bin)") { Patterns = new[] { "*.bin" } },
                 FilePickerFileTypes.All
             },
             _ => new List<FilePickerFileType> { FilePickerFileTypes.All }
@@ -102,7 +102,7 @@ public partial class MainWindow : Window
         panel.Children.Add(ok);
         var win = new Window
         {
-            Title = "??????",
+            Title = "Ошибка",
             Content = panel,
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -153,16 +153,16 @@ public partial class MainWindow : Window
     {
         var lines = new List<string>
         {
-            $"?????: {_moduleLoader.PluginsDirectory}"
+            $"Папка: {_moduleLoader.PluginsDirectory}"
         };
 
         if (result.Loaded.Count > 0)
-            lines.Add("?????????: " + string.Join(", ", result.Loaded));
+            lines.Add("Загружено: " + string.Join(", ", result.Loaded));
         else
-            lines.Add("?????????????? ?????? ?? ?????????.");
+            lines.Add("Дополнительные модули не загружены.");
 
         if (result.Errors.Count > 0)
-            lines.Add("??????: " + string.Join("; ", result.Errors));
+            lines.Add("Ошибки: " + string.Join("; ", result.Errors));
 
         ModulesStatusText.Text = string.Join(Environment.NewLine, lines);
     }
@@ -214,10 +214,10 @@ public partial class MainWindow : Window
             .ToList();
 
         var message = pluginTypes.Count > 0
-            ? "?????? ?????????????. ????????? ???? ?? ????????:\n" + string.Join("\n", pluginTypes)
-            : "?????? ?????????????. ????? ???? ???????? ?? ?????????? � ???????? DLL ? ????? Plugins ? ???????????? ??????.";
+            ? "Модули перезагружены. Доступные типы из плагинов:\n" + string.Join("\n", pluginTypes)
+            : "Модули перезагружены. Новые типы кораблей не обнаружены — положите DLL в папку Plugins и пересоберите модуль.";
 
-        await ShowInfoDialogAsync(this, "??????", message);
+        await ShowInfoDialogAsync(this, "Модули", message);
     }
 
     private async void SaveFleet_Click(object? sender, RoutedEventArgs e)
@@ -226,7 +226,7 @@ public partial class MainWindow : Window
         var serializer = GetSerializer();
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "????????? ????",
+            Title = "Сохранить флот",
             SuggestedFileName = SuggestedFileName(formatIndex),
             DefaultExtension = DefaultExtension(formatIndex),
             FileTypeChoices = FilePickerTypes(formatIndex)
@@ -245,7 +245,7 @@ public partial class MainWindow : Window
         var serializer = GetSerializer();
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "????????? ????",
+            Title = "Загрузить флот",
             AllowMultiple = false,
             FileTypeFilter = FilePickerTypes(formatIndex)
         });

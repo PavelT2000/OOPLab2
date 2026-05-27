@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lab2\Lab2.csproj" />
+  </ItemGroup>
+
+  <Target Name="CopyPluginToHost" AfterTargets="Build">
+    <PropertyGroup>
+      <PluginOutputDir>$(MSBuildProjectDirectory)\..\Lab2\bin\$(Configuration)\net9.0\Plugins\</PluginOutputDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(PluginOutputDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginOutputDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>
