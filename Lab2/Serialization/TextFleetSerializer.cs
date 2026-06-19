@@ -32,6 +32,13 @@ public sealed class TextFleetSerializer : IFleetSerializer
             writer.WriteLine(m.Capacity.HasValue
                 ? $"Capacity={m.Capacity.Value.ToString(CultureInfo.InvariantCulture)}"
                 : "Capacity=");
+
+            if (m.ExtendedData is { Count: > 0 })
+            {
+                foreach (var pair in m.ExtendedData)
+                    writer.WriteLine($"Ext.{pair.Key}={Escape(pair.Value)}");
+            }
+
             writer.WriteLine(End);
         }
     }
@@ -88,6 +95,15 @@ public sealed class TextFleetSerializer : IFleetSerializer
 
         if (props.TryGetValue("Capacity", out var cap) && !string.IsNullOrWhiteSpace(cap))
             m.Capacity = int.Parse(cap, CultureInfo.InvariantCulture);
+
+        foreach (var pair in props)
+        {
+            if (!pair.Key.StartsWith("Ext.", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            m.ExtendedData ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            m.ExtendedData[pair.Key[4..]] = pair.Value;
+        }
 
         return m.ToVessel();
     }

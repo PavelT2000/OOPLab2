@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Lab2.Factories;
 using Lab2.Models;
+using Lab2.Plugins;
 using Lab2.Serialization;
 using System;
 using System.Collections.Generic;
@@ -19,6 +20,9 @@ namespace Lab2.Views;
 
 public partial class MainWindow : Window
 {
+    private readonly VesselModuleLoader _moduleLoader = new();
+    private bool _modulesLoadedOnce;
+
     public ObservableCollection<SpaceVessel> CreatedShips { get; set; } = new();
 
     public MainWindow()
@@ -26,6 +30,10 @@ public partial class MainWindow : Window
         InitializeComponent();
         ShipsList.ItemsSource = CreatedShips;
         DataContext = this;
+
+        VesselPluginRegistry.Instance.RegisterBuiltInTypes();
+        LoadModules(reload: false);
+        VesselPluginRegistry.Instance.Changed += RefreshVesselTypes;
     }
 
     private IFleetSerializer GetSerializer() => SerializerTypeComboBox.SelectedIndex switch
@@ -58,7 +66,7 @@ public partial class MainWindow : Window
         {
             0 => new List<FilePickerFileType>
             {
-                new("��������� ���� (*.txt)") { Patterns = new[] { "*.txt" } },
+                new("Текстовый (*.txt)") { Patterns = new[] { "*.txt" } },
                 FilePickerFileTypes.All
             },
             1 => new List<FilePickerFileType>
@@ -68,7 +76,7 @@ public partial class MainWindow : Window
             },
             2 => new List<FilePickerFileType>
             {
-                new("�������� (*.bin)") { Patterns = new[] { "*.bin" } },
+                new("Бинарный (*.bin)") { Patterns = new[] { "*.bin" } },
                 FilePickerFileTypes.All
             },
             _ => new List<FilePickerFileType> { FilePickerFileTypes.All }
@@ -94,7 +102,7 @@ public partial class MainWindow : Window
         panel.Children.Add(ok);
         var win = new Window
         {
-            Title = "������ ��������",
+            Title = "Ошибка",
             Content = panel,
             SizeToContent = SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -104,13 +112,121 @@ public partial class MainWindow : Window
         await win.ShowDialog(owner);
     }
 
+    private static async Task ShowInfoDialogAsync(Window owner, string title, string message)
+    {
+        var ok = new Button
+        {
+            Content = "OK",
+            HorizontalAlignment = HorizontalAlignment.Right,
+            MinWidth = 88,
+            Margin = new Avalonia.Thickness(0, 12, 0, 0)
+        };
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 8 };
+        panel.Children.Add(new TextBlock
+        {
+            Text = message,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 440
+        });
+        panel.Children.Add(ok);
+        var win = new Window
+        {
+            Title = title,
+            Content = panel,
+            SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false
+        };
+        ok.Click += (_, _) => win.Close();
+        await win.ShowDialog(owner);
+    }
+
+    private void LoadModules(bool reload)
+    {
+        var result = _moduleLoader.LoadAll(reload);
+        _modulesLoadedOnce = true;
+        RefreshVesselTypes();
+        UpdateModulesStatus(result);
+    }
+
+    private void UpdateModulesStatus(ModuleLoadResult result)
+    {
+        var lines = new List<string>
+        {
+            $"Папка: {_moduleLoader.PluginsDirectory}"
+        };
+
+        if (result.Loaded.Count > 0)
+            lines.Add("Загружено: " + string.Join(", ", result.Loaded));
+        else
+            lines.Add("Дополнительные модули не загружены.");
+
+        if (result.Errors.Count > 0)
+            lines.Add("Ошибки: " + string.Join("; ", result.Errors));
+
+        ModulesStatusText.Text = string.Join(Environment.NewLine, lines);
+    }
+
+    private void RefreshVesselTypes()
+    {
+        var selectedKey = (TypeSelector.SelectedItem as ComboBoxItem)?.Tag as string;
+        TypeSelector.Items.Clear();
+
+        foreach (var type in VesselPluginRegistry.Instance.GetAvailableTypes())
+        {
+            var label = type.SourceModule is null
+                ? type.DisplayName
+                : $"{type.DisplayName} [{type.SourceModule}]";
+
+            TypeSelector.Items.Add(new ComboBoxItem
+            {
+                Content = label,
+                Tag = type.TypeKey
+            });
+        }
+
+        if (TypeSelector.Items.Count == 0)
+            return;
+
+        var index = 0;
+        if (selectedKey is not null)
+        {
+            for (var i = 0; i < TypeSelector.Items.Count; i++)
+            {
+                if ((TypeSelector.Items[i] as ComboBoxItem)?.Tag as string == selectedKey)
+                {
+                    index = i;
+                    break;
+                }
+            }
+        }
+
+        TypeSelector.SelectedIndex = index;
+    }
+
+    private async void ReloadModules_Click(object? sender, RoutedEventArgs e)
+    {
+        LoadModules(reload: _modulesLoadedOnce);
+
+        var pluginTypes = VesselPluginRegistry.Instance.GetAvailableTypes()
+            .Where(t => t.SourceModule is not null)
+            .Select(t => t.DisplayName)
+            .ToList();
+
+        var message = pluginTypes.Count > 0
+            ? "Модули перезагружены. Доступные типы из плагинов:\n" + string.Join("\n", pluginTypes)
+            : "Модули перезагружены. Новые типы кораблей не обнаружены — положите DLL в папку Plugins и пересоберите модуль.";
+
+        await ShowInfoDialogAsync(this, "Модули", message);
+    }
+
     private async void SaveFleet_Click(object? sender, RoutedEventArgs e)
     {
         var formatIndex = SerializerTypeComboBox.SelectedIndex;
         var serializer = GetSerializer();
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "��������� ����",
+            Title = "Сохранить флот",
             SuggestedFileName = SuggestedFileName(formatIndex),
             DefaultExtension = DefaultExtension(formatIndex),
             FileTypeChoices = FilePickerTypes(formatIndex)
@@ -129,7 +245,7 @@ public partial class MainWindow : Window
         var serializer = GetSerializer();
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "��������� ����",
+            Title = "Загрузить флот",
             AllowMultiple = false,
             FileTypeFilter = FilePickerTypes(formatIndex)
         });
@@ -172,16 +288,13 @@ public partial class MainWindow : Window
 
     private void CreateShip_Click(object? sender, RoutedEventArgs e)
     {
-        var selectedType = (TypeSelector.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        if (TypeSelector.SelectedItem is not ComboBoxItem item || item.Tag is not string typeKey)
+            return;
 
-        SpaceVessel newShip = selectedType switch
-        {
-            "Cargo" => VesselFactory.CreateVessel("Cargo", "Cargo"),
-            "Destroyer" => VesselFactory.CreateVessel("Destroyer", "Destroyer"),
-            "Scout Ship" => VesselFactory.CreateVessel("Scout", "Scout"),
-            _ => throw new InvalidOperationException("�������� ��� �������.")
-        };
+        var displayName = VesselPluginRegistry.Instance.GetAvailableTypes()
+            .FirstOrDefault(t => t.TypeKey == typeKey)?.DisplayName ?? "Ship";
 
+        var newShip = VesselFactory.CreateVessel(typeKey, displayName);
         CreatedShips.Add(newShip);
         ShipsList.SelectedItem = newShip;
     }
@@ -189,6 +302,37 @@ public partial class MainWindow : Window
     private void ShipsList_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         UpdateInspector(ShipsList.SelectedItem);
+        UpdateModuleActions(ShipsList.SelectedItem as SpaceVessel);
+    }
+
+    private void UpdateModuleActions(SpaceVessel? vessel)
+    {
+        ModuleActionsPanel.Children.Clear();
+        if (vessel is null)
+            return;
+
+        foreach (var action in VesselPluginRegistry.Instance.GetActionsFor(vessel))
+        {
+            var capturedAction = action;
+            var button = new Button
+            {
+                Content = capturedAction.Label,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                Background = Brushes.LightSkyBlue
+            };
+
+            button.Click += (_, _) =>
+            {
+                if (ShipsList.SelectedItem is not SpaceVessel selected)
+                    return;
+
+                capturedAction.Execute(selected);
+                UpdateInspector(selected);
+            };
+
+            ModuleActionsPanel.Children.Add(button);
+        }
     }
 
     private void UpdateInspector(object? obj)
@@ -227,7 +371,7 @@ public partial class MainWindow : Window
         }
         else if (prop.PropertyType == typeof(bool))
         {
-            var chk = new CheckBox { Content = "��/���" };
+            var chk = new CheckBox { Content = "??/???" };
             chk.Bind(CheckBox.IsCheckedProperty, binding);
             input = chk;
         }
